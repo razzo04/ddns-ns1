@@ -1,4 +1,3 @@
 .git
 .gitignore
 zig-cache
-zig-out
