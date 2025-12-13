@@ -12,6 +12,7 @@ const Config = struct {
     ns1_api_key: []const u8,
     zone: []const u8,
     base_domain: []const u8,
+    ttl: u32,
 };
 
 fn getConfig(allocator: mem.Allocator) !Config {
@@ -21,10 +22,14 @@ fn getConfig(allocator: mem.Allocator) !Config {
     const zone = env_map.get("ZONE") orelse return error.MissingZone;
     const base_domain = env_map.get("BASE_DOMAIN") orelse return error.MissingBaseDomain;
 
+    const ttl_str = env_map.get("TTL");
+    const ttl = if (ttl_str) |t| try std.fmt.parseInt(u32, t, 10) else 60;
+
     return Config{
         .ns1_api_key = ns1_api_key,
         .zone = zone,
         .base_domain = base_domain,
+        .ttl = ttl,
     };
 }
 
@@ -67,8 +72,9 @@ fn updateNs1Record(allocator: std.mem.Allocator, config: Config, ip: []const u8)
         "\"zone\":\"{s}\"," ++
         "\"domain\":\"{s}\"," ++
         "\"type\":\"A\"," ++
+        "\"ttl\":{d}," ++
         "\"answers\":[{{\"answer\":[\"{s}\"]}}]" ++
-        "}}", .{ config.zone, domain, ip });
+        "}}", .{ config.zone, domain, config.ttl, ip });
     defer allocator.free(payload_string);
 
     // 2. Setup Client
